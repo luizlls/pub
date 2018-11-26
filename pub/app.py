@@ -1,16 +1,19 @@
 from aiohttp import web
+from pub.wss import handle
 
 
-routes = web.RouteTableDef()
-
-
-@routes.get('/')
-async def hello(request):
-    return web.Response(text="Hello, world")
-
-
-def init_app():
+async def init_app():
     app = web.Application()
-    app.add_routes(routes)
+    app['websockets'] = {}
+    app.on_shutdown.append(shutdown)
+
+    app.add_routes([web.get('/s', handle)])
 
     return app
+
+
+async def shutdown(app):
+    for ws in app['websockets'].values():
+        await ws.close()
+
+    app['websockets'].clear()
