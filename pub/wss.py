@@ -1,34 +1,63 @@
-import aiohttp
+from aiohttp import web
 from pub.utils import get_random_hash
+from aioredis import create_redis
 
 
-async def handle(request):
-    socket = aiohttp.web.WebSocketResponse()
+async def init_wss(app):
+    app['websockets'] = {}
+    app.loop.create_task(handle_ws_msgs(app))
 
-    ready = socket.can_prepare(request)
+
+async def close_wss(app):
+    for ws in app['websockets'].values():
+        await ws.close()
+
+    app['websockets'].clear()
+
+
+async def handle_ws_reqs(req):
+    socket = web.WebSocketResponse()
+
+    ready = socket.can_prepare(req)
     if not ready.ok:
         return None
 
-    await socket.prepare(request)
+    await socket.prepare(req)
 
     identifier = get_random_hash()
 
     await socket.send_json({
         'channel': 'pub-notify',
-        'message': {
+        'payload': {
             'identifier': identifier
         }})
 
-    request.app['websockets'][identifier] = socket
+    req.app['websockets'][identifier] = socket
 
     while True:
-        msg = await socket.receive()
-
-        if msg.type == aiohttp.WSMsgType.text:
-            print(msg.data)
-        else:
+        try:
+            msg = await socket.receive_json()
+            pub = await create_redis('redis://localhost')
+            await pub.publish_json('pub-msgs', msg)
+            pub.close()
+        except Exception:
             break
 
-    del request.app['websockets'][identifier]
+    del req.app['websockets'][identifier]
 
     return socket
+
+
+async def handle_ws_msgs(app):
+    # TODO make redis URL configurable
+    sub = await create_redis('redis://localhost')
+    channel = (await sub.subscribe('pub-msgs'))[0]
+    await read(channel)
+    channel.unsubscribe()
+    sub.close()
+
+
+async def read(channel):
+    while await channel.wait_message():
+        msg = await channel.get_json()
+        print(msg)
