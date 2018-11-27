@@ -11,6 +11,7 @@ async def init_app():
     app.on_cleanup.append(close_wss)
 
     app.add_routes([
-        web.get('/wss', handle_ws_reqs)])
+        web.get('/', handle_ws_reqs)
+    ])
 
     return app
