@@ -1,6 +1,5 @@
 from aiohttp import web
 from pub.utils import get_random_hash
-from aioredis import create_redis
 
 
 async def init_wss(app):
@@ -33,31 +32,26 @@ async def handle_ws_reqs(req):
         }})
 
     req.app['websockets'][identifier] = socket
-
-    while True:
-        try:
-            msg = await socket.receive_json()
-            pub = await create_redis('redis://localhost')
-            await pub.publish_json('pub-msgs', msg)
-            pub.close()
-        except Exception:
-            break
-
+    await handle_incoming_msgs(req.app, socket)
     del req.app['websockets'][identifier]
 
     return socket
 
 
+async def handle_incoming_msgs(app, socket):
+    while True:
+        try:
+            msg = await socket.receive_json()
+            await app['redis'].publish_json('pub-msgs', msg)
+        except Exception:
+            break
+
+
 async def handle_ws_msgs(app):
-    # TODO make redis URL configurable
-    sub = await create_redis('redis://localhost')
-    channel = (await sub.subscribe('pub-msgs'))[0]
-    await read(channel)
-    channel.unsubscribe()
-    sub.close()
+    channel = (await app['redis'].subscribe('pub-msgs'))[0]
 
-
-async def read(channel):
     while await channel.wait_message():
         msg = await channel.get_json()
         print(msg)
+
+    channel.unsubscribe()
