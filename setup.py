@@ -24,6 +24,7 @@ def read_version():
 requirements = [
     'aiohttp',
     'aioredis',
+    'uvloop',
 ]
 
 

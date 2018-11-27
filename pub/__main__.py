@@ -1,5 +1,10 @@
+import asyncio
+import uvloop
 from aiohttp import web
 from pub.app import init_app
+
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def main():
