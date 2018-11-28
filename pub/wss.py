@@ -1,5 +1,4 @@
 from aiohttp import web
-from pub.utils import get_random_hash
 
 
 async def init_wss(app):
@@ -23,19 +22,31 @@ async def handle_ws_reqs(req):
 
     await socket.prepare(req)
 
-    identifier = get_random_hash()
+    user_id = req.rel_url.query['id']
 
-    await socket.send_json({
-        'channel': 'pub-notify',
-        'payload': {
-            'identifier': identifier
-        }})
+    if user_id is None:
+        await notify_error(socket, 'user id required')
+        socket.close()
+        return None
 
-    req.app['sockets'][identifier] = socket
+    if not req.app['redis'].sismember('users', user_id):
+        await notify_error(socket, 'user id not found')
+        socket.close()
+        return None
+
+    req.app['sockets'][user_id] = socket
     await handle_socket_msgs(req.app, socket)
-    del req.app['sockets'][identifier]
+    del req.app['sockets'][user_id]
 
     return socket
+
+
+async def notify_error(socket, message):
+    await socket.send_json({
+        'channel': 'pub-error',
+        'payload': {
+            'error': message
+        }})
 
 
 async def handle_socket_msgs(app, socket):
@@ -55,5 +66,3 @@ async def broadcast(app):
         ids = await app['redis'].smembers(msg['channel'])
         for id in (i for i in ids if i in app['sockets'].keys()):
             await app['sockets'][id].send_json(msg)
-
-    channel.unsubscribe()

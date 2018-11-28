@@ -1,5 +1,6 @@
 from aiohttp import web
-from pub.wss import init_wss, close_wss, handle_ws_reqs
+from pub.routes import setup_routes
+from pub.wss import init_wss, close_wss
 from pub.redis import init_redis, close_redis
 
 
@@ -10,8 +11,6 @@ async def init_app():
     app.on_cleanup.append(close_redis)
     app.on_cleanup.append(close_wss)
 
-    app.add_routes([
-        web.get('/', handle_ws_reqs)
-    ])
+    setup_routes(app)
 
     return app
