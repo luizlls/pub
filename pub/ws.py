@@ -1,16 +1,17 @@
 from aiohttp import web
 
 
-async def init_wss(app):
+async def setup_ws(app):
     app['sockets'] = {}
     app.loop.create_task(broadcast(app))
 
+    async def clean_ws(app):
+        for ws in app['sockets'].values():
+            await ws.close()
 
-async def close_wss(app):
-    for ws in app['sockets'].values():
-        await ws.close()
+        app['sockets'].clear()
 
-    app['sockets'].clear()
+    app.on_cleanup.append(clean_ws)
 
 
 async def handle_ws_reqs(req):

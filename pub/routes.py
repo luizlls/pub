@@ -1,4 +1,4 @@
-from pub.wss import handle_ws_reqs
+from pub.ws import handle_ws_reqs
 from pub.api import create_user, sub_channel, pub_channel, unsub_channel
 
 

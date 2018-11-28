@@ -1,0 +1,4 @@
+flake8
+pytest-aiohttp
+pytest
+pytest-cov
