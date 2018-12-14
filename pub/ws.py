@@ -30,7 +30,7 @@ async def handle_ws_reqs(req):
         socket.close()
         return None
 
-    if not req.app['redis'].sismember('users', user_id):
+    if not await req.app['redis'].sismember('users', user_id):
         await notify_error(socket, 'user id not found')
         socket.close()
         return None
