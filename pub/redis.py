@@ -2,7 +2,7 @@ from aioredis import create_redis_pool
 
 
 async def setup_redis(app):
-    pool = await create_redis_pool('redis://localhost', encoding='utf-8')
+    pool = await create_redis_pool('redis://redis:6379', encoding='utf-8')
     app['redis'] = pool
 
     async def close_redis(app):

@@ -9,7 +9,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 def main():
     app = init_app()
-    web.run_app(app)
+    web.run_app(app, port=3000)
 
 
 if __name__ == '__main__':

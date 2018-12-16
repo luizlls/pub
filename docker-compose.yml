@@ -3,5 +3,23 @@ services:
   server:
     build: .
     ports:
-     - "3000:8080"
-    network_mode: "host"
+     - 3000:3000
+    networks:
+      - net
+    depends_on:
+      - redis
+  
+  redis:
+    image: redis:alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    networks:
+      - net
+    volumes:
+      - redis-data:/data
+
+networks:
+  net:
+
+volumes:
+  redis-data:
